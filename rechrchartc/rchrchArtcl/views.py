@@ -1,6 +1,8 @@
 from rest_framework.views import APIView 
 from .api.serializers import *
 from rest_framework.response import Response 
+from django.contrib.postgres.search import SearchVector
+
 
 from .models import *
  
@@ -25,6 +27,59 @@ import spacy
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionError
 from elasticsearch.exceptions import NotFoundError
+from django.db.models import Q
+
+
+
+class UserUpdate(APIView):
+    def get(self,request,pk):
+        """
+        Traite la requête GET pour obtenir les données d'un modérateur.
+
+        Paramètres :
+        - `request` : L'objet de requête HTTP Django.
+        - `pk` : La clé primaire (ID) du modérateur à récupérer.
+
+        Retours :
+        - Une réponse JSON contenant les données sérialisées du modérateur avec l'ID spécifié.
+        """
+        mods = User.objects.get(name=pk)
+        serializer = UserSerializer(mods,many=False)
+        return Response(serializer.data)
+    def put(self,request,pk):
+        """
+        Traite la requête PUT pour mettre à jour les données d'un modérateur.
+
+        Paramètres :
+        - `request` : L'objet de requête HTTP Django.
+        - `pk` : La clé primaire (ID) du modérateur à mettre à jour.
+
+        Retours :
+        - Une réponse JSON contenant les données sérialisées du modérateur mis à jour.
+        """
+        data = request.data
+        mod = User.objects.get(name=pk)
+        serializer = UserSerializer(instance=mod ,data=data)
+
+        if serializer.is_valid():
+            serializer.save() 
+        return Response(serializer.data)
+    def delete(self,request,pk):
+        """
+        Traite la requête DELETE pour supprimer un modérateur.
+
+        Paramètres :
+        - `request` : L'objet de requête HTTP Django.
+        - `pk` : La clé primaire (ID) du modérateur à supprimer.
+
+        Retours :
+        - Une réponse indiquant que le modérateur a été supprimé.
+        """
+        mod = User.objects.get(name=pk)
+        mod.delete()
+        return Response("Moderateur supprimé")
+
+
 
 class Registerview(APIView):
     """
@@ -246,7 +301,10 @@ class ModeratorUpdate(APIView):
         Retours :
         - Une réponse JSON contenant les données sérialisées du modérateur avec l'ID spécifié.
         """
-        mods = Moderateurs.objects.get(id=pk)
+        try:
+           mods = Moderateurs.objects.get(id=pk)
+        except ValueError as e:
+            mods = Moderateurs.objects.get(name=pk)
         serializer = ModerateursSerializer(mods,many=False)
         return Response(serializer.data)
     def put(self,request,pk):
@@ -300,10 +358,11 @@ class ModeratorUpdate(APIView):
         if user is None and moderateur is None and admin is None :
             newmod = Moderateurs.objects.create(
                 name = request.data["name"],
-                password = request.data["password"]
+                password = request.data["password"],
+                email = request.data["email"]
             )
             serializer = ModerateursSerializer(newmod ,many=False)
-            return Response(serializer)
+            return Response(serializer.data)
         else:
             return Response({
                 "ERROR" : "Not valid"
@@ -715,6 +774,14 @@ class ArticleFavoris(APIView):
            
     ```
     """
+    def get(self,request ,Username):
+        """Get all favorite articles of a user"""
+        articles = Article.objects.filter(user__name=Username)
+        serializer = ArticleSerializer(articles,many=True)
+        return Response(serializer.data)
+
+
+
     def post(self , request,Userid,Artid):
         """
         Gère la requête POST pour ajouter un article aux favoris d'un utilisateur.
@@ -758,6 +825,13 @@ class ArticleGet(APIView):
         article = Article.objects.get(id=pk)
         serializer = ArticleSerializer(article,many=False)
         return Response(serializer.data)
+    
+class ArtSr(APIView):
+    def get(self ,request,query):
+        articles = Article.objects.filter(titre__contains=query)
+        serializer = ArticleSerializer(articles,many=True)
+        return Response(serializer.data)
+    
     
 
     

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'rest_framework',
     'corsheaders',
     'rchrchArtcl',
@@ -86,7 +87,7 @@ DATABASES = {
         'USER': 'postgres.iiwzcaocnyayvtgyyfcg',
         'PASSWORD': 'WalrFDdofcpmeZ26',
         'HOST': 'aws-0-eu-central-1.pooler.supabase.com',
-        'PORT': '6543',
+        'PORT': '5432',
     }
 }
 
